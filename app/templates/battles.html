@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Battle · JellyVale{% endblock %}
+{% block content %}
+<p class="eyebrow"><i></i> Case battles</p>
+<h1>Battle cùng bot</h1>
+<p class="lead">Mọi ghế mở cùng rương. Standard: tổng cao thắng hết. Crazy: tổng thấp thắng.</p>
+
+<section class="cf-panel" style="padding:20px;margin-bottom:28px">
+  <h2 style="margin-top:0">Tạo trận</h2>
+  <div class="create-grid">
+    <label>Rương
+      <select id="case-id">
+        {% for case in cases %}
+        <option value="{{ case.id }}" data-cost="{{ case.pull_cost }}">{{ case.name }} · {{ case.cost_fmt }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Ghế
+      <select id="slots"><option>2</option><option>3</option><option>4</option></select>
+    </label>
+    <label>Vòng
+      <select id="rounds"><option>1</option><option>2</option><option>3</option><option>5</option></select>
+    </label>
+    <label>Chế độ
+      <select id="mode">
+        <option value="STANDARD">Standard</option>
+        <option value="CRAZY">Crazy</option>
+      </select>
+    </label>
+  </div>
+  <label class="check" style="margin-top:12px"><input id="fill-bots" type="checkbox" checked> Gọi bot ngồi hết ghế (bạn bấm Bắt đầu để quay)</label>
+  <p id="create-hint" class="meta"></p>
+  <div class="actions" style="justify-content:flex-start;margin-top:14px">
+    {% if player %}
+    <button id="create" class="cf-btn-primary" type="button">Tạo battle</button>
+    {% else %}
+    <a class="cf-btn-primary" href="/login">Đăng nhập để tạo</a>
+    {% endif %}
+  </div>
+</section>
+
+<h2>Phòng chờ</h2>
+<div class="battle-list">
+  {% for b in open_battles %}
+  {% include "partials/battle_card.html" %}
+  {% else %}
+  <p class="meta">Chưa có trận. Tạo một trận hoặc đợi bot mở.</p>
+  {% endfor %}
+</div>
+
+<h2>Vừa xong</h2>
+<div class="battle-list">
+  {% for b in finished %}
+  {% include "partials/battle_card.html" %}
+  {% endfor %}
+</div>
+{% if player %}
+<script>
+  const csrf = document.querySelector("meta[name=csrf]").content;
+  document.getElementById("create")?.addEventListener("click", async () => {
+    const btn = document.getElementById("create");
+    btn.disabled = true;
+    const res = await fetch("/api/battles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRF": csrf },
+      body: JSON.stringify({
+        case_id: document.getElementById("case-id").value,
+        slots: Number(document.getElementById("slots").value),
+        rounds: Number(document.getElementById("rounds").value),
+        mode: document.getElementById("mode").value,
+        fill_bots: document.getElementById("fill-bots").checked
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      document.getElementById("create-hint").textContent = data.detail;
+      btn.disabled = false;
+      return;
+    }
+    location.href = "/battles/" + data.id;
+  });
+</script>
+{% endif %}
+{% endblock %}
